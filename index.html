@@ -15,12 +15,26 @@
             document.body.appendChild(canvas);
             var ctx = canvas.getContext("2d");
 
-            class Player {
+            var ground = {x: 0, y: 580, width: 800, height: 20};
+            
+            class Character {
+                constructor(x, y, width, height, color, sprite) {
+                    this.x = x;
+                    this.y = y;
+                    this.width = width;
+                    this.height = height;
+                    this.color = color;
+                    this.sprite = new Image();
+                    this.sprite.src = sprite;
+                }
+                draw() {
+                    ctx.drawImage(this.sprite, this.x, this.y, this.width, this.height);
+                }
+            }
+            
+            class Player extends Character {
                 constructor() {
-                    this.x = 50;
-                    this.y = 500;
-                    this.width = 32;
-                    this.height = 32;
+                    super(50, 500, 40, 40, "red", "player.png");
                     this.dx = 5;
                     this.dy = 0;
                     this.gravity = 0.5;
@@ -30,114 +44,43 @@
                     this.level = 1;
                     this.exp = 0;
                     this.expNeeded = 20;
-                    this.gear = [];
                     this.potions = 3;
                 }
-                draw() {
-                    ctx.fillStyle = "red";
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
-                attackEnemy(enemy) {
-                    enemy.health -= this.attack;
-                    if (enemy.health <= 0) {
-                        this.exp += 10;
-                        this.gold += 5;
-                        this.levelUp();
-                        enemies.splice(enemies.indexOf(enemy), 1);
-                    }
-                }
-                levelUp() {
-                    if (this.exp >= this.expNeeded) {
-                        this.level++;
-                        this.exp = 0;
-                        this.expNeeded += 10;
-                        this.attack += 5;
-                        this.health += 20;
-                        alert("You leveled up! Attack power and health increased!");
-                    }
-                }
-                usePotion() {
-                    if (this.potions > 0) {
-                        this.health += 30;
-                        this.potions--;
-                        alert("You used a potion! Health restored.");
-                    } else {
-                        alert("No potions left!");
-                    }
-                }
             }
-
-            class Enemy {
+            
+            class Enemy extends Character {
                 constructor(x, y, health, speed, question, answer, reward) {
-                    this.x = x;
-                    this.y = y;
-                    this.width = 30;
-                    this.height = 30;
+                    super(x, y, 40, 40, "green", "enemy.png");
                     this.health = health;
                     this.speed = speed;
                     this.question = question;
                     this.answer = answer;
                     this.reward = reward;
                 }
-                draw() {
-                    ctx.fillStyle = "green";
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
                 move() {
                     this.x -= this.speed;
                     if (this.x < 0) this.x = canvas.width;
-                }
-                challengePlayer() {
-                    var userAnswer = prompt(this.question);
-                    return parseInt(userAnswer) === this.answer;
                 }
             }
 
             var player = new Player();
             var enemies = [
                 new Enemy(600, 500, 50, 2, "5 + 3 = ?", 8, 5),
-                new Enemy(400, 350, 80, 3, "12 - 4 = ?", 8, 10),
-                new Enemy(750, 300, 100, 4, "9 x 3 = ?", 27, 15),
-                new Enemy(500, 250, 120, 2, "16 / 2 = ?", 8, 20),
-                new Enemy(850, 200, 150, 5, "25 + 15 = ?", 40, 30)
+                new Enemy(400, 350, 80, 3, "12 - 4 = ?", 8, 10)
             ];
 
-            var boss = new Enemy(700, 100, 300, 2, "Solve: 100 - 25 + 10 = ?", 85, 100);
-            var bossDefeated = false;
-
-            var platforms = [
-                {x: 100, y: 450, width: 200, height: 20},
-                {x: 400, y: 350, width: 200, height: 20},
-                {x: 200, y: 250, width: 200, height: 20},
-                {x: 500, y: 150, width: 200, height: 20}
-            ];
-
-            function drawPlatforms() {
-                ctx.fillStyle = "blue";
-                platforms.forEach(p => {
-                    ctx.fillRect(p.x, p.y, p.width, p.height);
-                });
+            function drawGround() {
+                ctx.fillStyle = "brown";
+                ctx.fillRect(ground.x, ground.y, ground.width, ground.height);
             }
 
             function update() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawPlatforms();
+                drawGround();
                 player.draw();
                 enemies.forEach(enemy => {
                     enemy.draw();
                     enemy.move();
-                });
-                if (enemies.length === 0 && !bossDefeated) {
-                    boss.draw();
-                    boss.move();
-                }
-                player.y += player.dy;
-                player.dy += player.gravity;
-                platforms.forEach(p => {
-                    if (player.x + player.width > p.x && player.x < p.x + p.width && player.y + player.height > p.y && player.y + player.height - player.dy <= p.y) {
-                        player.y = p.y - player.height;
-                        player.dy = 0;
-                    }
                 });
                 requestAnimationFrame(update);
             }
@@ -145,26 +88,7 @@
             document.addEventListener("keydown", function(event) {
                 if (event.key === "ArrowRight") player.x += player.dx;
                 if (event.key === "ArrowLeft") player.x -= player.dx;
-                if (event.key === " " && player.dy === 0) player.dy = -10;
-                if (event.key === "f" && enemies.length > 0) {
-                    if (enemies[0].challengePlayer()) {
-                        player.attackEnemy(enemies[0]);
-                    } else {
-                        alert("Wrong answer! Try again.");
-                    }
-                }
-                if (event.key === "p") player.usePotion();
-                if (event.key === "b" && enemies.length === 0 && !bossDefeated) {
-                    if (boss.challengePlayer()) {
-                        player.attackEnemy(boss);
-                        if (boss.health <= 0) {
-                            alert("You defeated Mr. Lambie! You won the game!");
-                            bossDefeated = true;
-                        }
-                    } else {
-                        alert("Wrong answer! The boss remains strong!");
-                    }
-                }
+                if (event.key === " ") player.dy = -10;
             });
 
             update();
@@ -176,3 +100,4 @@
     <p>Defeat enemies by solving math problems, collect treasure, use potions, and prepare for the ultimate boss fight against Mr. Lambie!</p>
 </body>
 </html>
+
