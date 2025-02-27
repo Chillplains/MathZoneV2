@@ -1,0 +1,104 @@
+import pygame
+import random
+import sys
+from flask import Flask, render_template_string
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# HTML Template for the Game
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Knightmare Math</title>
+    <style>
+        body { background-color: black; text-align: center; }
+        canvas { background-color: #87CEEB; }
+    </style>
+    <script>
+        function startGame() {
+            var canvas = document.getElementById("gameCanvas");
+            var ctx = canvas.getContext("2d");
+            
+            var player = {x: 50, y: 500, width: 32, height: 32, dx: 5, dy: 0, gravity: 0.5};
+            var level = 1;
+            var maxLevels = 25;
+            var platforms = [];
+
+            function generatePlatforms() {
+                platforms = [];
+                for (var i = 0; i < 5; i++) {
+                    platforms.push({
+                        x: Math.random() * (canvas.width - 100),
+                        y: 100 + i * 100,
+                        width: 100,
+                        height: 10
+                    });
+                }
+            }
+
+            function drawPlayer() {
+                ctx.fillStyle = "red";
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+            }
+            
+            function drawPlatforms() {
+                ctx.fillStyle = "blue";
+                platforms.forEach(p => {
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                });
+            }
+            
+            function update() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawPlatforms();
+                drawPlayer();
+                
+                player.y += player.dy;
+                player.dy += player.gravity;
+                
+                platforms.forEach(p => {
+                    if (player.x + player.width > p.x && player.x < p.x + p.width && player.y + player.height > p.y && player.y + player.height - player.dy <= p.y) {
+                        player.y = p.y - player.height;
+                        player.dy = 0;
+                    }
+                });
+
+                if (player.y > canvas.height) {
+                    player.y = 500;
+                    level++;
+                    if (level > maxLevels) {
+                        alert("Congratulations! You survived all 25 levels!");
+                        level = 1;
+                    }
+                    generatePlatforms();
+                }
+                
+                requestAnimationFrame(update);
+            }
+            
+            document.addEventListener("keydown", function(event) {
+                if (event.key === "ArrowRight") player.x += player.dx;
+                if (event.key === "ArrowLeft") player.x -= player.dx;
+                if (event.key === " " && player.dy === 0) player.dy = -10;
+            });
+            
+            generatePlatforms();
+            update();
+        }
+    </script>
+</head>
+<body onload="startGame()">
+    <h1 style="color: white;">Knightmare Math - Level <span id="levelCounter">1</span></h1>
+    <canvas id="gameCanvas" width="800" height="600" style="border:1px solid white;"></canvas>
+</body>
+</html>
+"""
+
+@app.route('/')
+def game():
+    return render_template_string(HTML_TEMPLATE)
+
+if __name__ == '__main__':
+    app.run(debug=True)
